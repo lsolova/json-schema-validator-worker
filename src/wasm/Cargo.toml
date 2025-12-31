@@ -2,7 +2,7 @@
 name = "jsonschema-wasm"
 version = "0.1.0"
 edition = "2021"
-authors = ["Laszlo Solova <laszlo@solova.com06:40 PM06:40 PM>"]
+authors = ["Laszlo Solova <laszlo@solova.com 06:40 PM06:40 PM>"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
