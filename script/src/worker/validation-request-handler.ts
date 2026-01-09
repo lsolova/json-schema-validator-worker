@@ -1,4 +1,4 @@
-import { validate } from "../../../dist/schema_validator.js";
+import { validate } from "../../wasm/schema_validator.js";
 import { type ErrorResponse, MessageCodeSet, MessageTypeSet, type ValidationRequest, type ValidationResponse } from "./types.js";
 
 export async function handleValidationRequest(message: ValidationRequest

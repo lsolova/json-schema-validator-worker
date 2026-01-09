@@ -3,6 +3,9 @@ name: Publish NPM Package
 on:
   release:
     types: [created]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -39,4 +42,4 @@ jobs:
         run: npm run build
 
       - name: Publish to NPM
-        run: npm publish
+        run: npm publish --access public

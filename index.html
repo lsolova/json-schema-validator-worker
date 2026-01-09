@@ -79,7 +79,7 @@
     <script type="module">
       import { SchemaValidator } from "./dist/index.js";
 
-      SchemaValidator.init("./worker.js", "./schema_validator_bg.wasm");
+      SchemaValidator.init("/dist/assets/worker.js", "/dist/assets/schema_validator.wasm");
 
       const schemaInput = document.getElementById("schema");
       schemaInput.value = "http://localhost:8000/public/test.schema.json";

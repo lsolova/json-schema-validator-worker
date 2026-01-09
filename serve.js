@@ -5,8 +5,6 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const wasmPkgDir = path.join(__dirname, "script/src");
-
 let ctx = await esbuild.context({
   entryPoints: [],
   outdir: "dist",

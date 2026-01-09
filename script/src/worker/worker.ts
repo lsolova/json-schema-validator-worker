@@ -1,4 +1,4 @@
-import init from "../../../dist/schema_validator.js";
+import init from "../../wasm/schema_validator.js";
 import { type ErrorResponse, type IncomingMessage, isInitializeRequest, isValidationRequest, MessageCodeSet, MessageTypeSet } from "./types.js";
 import { handleValidationRequest } from "./validation-request-handler.js";
 

@@ -5,12 +5,18 @@ Rust package wrapped into a WASM module and exposing functionality using a Worke
 
 ## Usage
 
+Copy the following files into your output:
+
+| Parameter | File                                                             |
+|-----------|------------------------------------------------------------------|
+| workerURL | @lsolova/json-schema-validator/dist/assets/worker.js             |
+| wasmURL   | @lsolova/json-schema-validator/dist/assets/schema_validator.wasm |
+
 ```ts
 import { SchemaValidator } from "@lsolova/json-schema-validator";
-import workerURL from "@lsolova/json-schema-validator/dist/worker.js?url";
-import wasmURL from "@lsolova/json-schema-validator/dist/schema_validator_bg.wasm?url";
 
 async function initValidation {
+    // Set the URLs to the URL of the copied files (without origin)
     await SchemaValidator.init(workerURL, wasmURL);
 };
 
