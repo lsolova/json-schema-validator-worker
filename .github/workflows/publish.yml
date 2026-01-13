@@ -1,8 +1,9 @@
-name: Publish NPM Package
+name: Build and publish NPM package
 
 on:
   release:
     types: [created]
+  pull_request:
   push:
     tags:
       - 'v*'
@@ -42,4 +43,5 @@ jobs:
         run: npm run build
 
       - name: Publish to NPM
+        if: ${{ github.ref_type == 'tag' }}
         run: npm publish --access public

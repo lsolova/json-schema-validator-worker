@@ -93,6 +93,7 @@
       const resultDiv = document.getElementById("result");
 
       validateBtn.addEventListener("click", async () => {
+        performance.mark("start-validation");
         try {
           const schemaURL = schemaInput.value;
           const data = JSON.parse(dataInput.value);
@@ -107,6 +108,8 @@
           resultDiv.className = "error";
           resultDiv.textContent = `Error: ${error.message}`;
         }
+        const perfData = performance.measure("validation-length", "start-validation");
+        console.log(`Schema validation takes ${perfData.duration.toFixed(2)} ms`);
       });
     </script>
   </body>
