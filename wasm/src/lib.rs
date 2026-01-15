@@ -1,57 +1,62 @@
+use schema_retriever::SchemaRetriever;
+use schema_store::SchemaStore;
+use serde_json::Value;
+use std::sync::Arc;
 use wasm_bindgen::prelude::*;
-use jsonschema::{AsyncRetrieve, Uri};
-use serde_json::{Value};
 
-struct HttpRetriever;
+mod schema_retriever;
+mod schema_store;
 
-#[cfg_attr(target_family = "wasm", async_trait::async_trait(?Send))]
-#[cfg_attr(not(target_family = "wasm"), async_trait::async_trait)]
-impl AsyncRetrieve for HttpRetriever {
-    async fn retrieve(
-        &self,
-        uri: &Uri<String>,
-    ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
-        let x: reqwest::Response = reqwest::get(uri.as_str()).await?;
-        x.json().await
-            .map_err(Into::into)
-    }
+#[wasm_bindgen]
+pub struct WasmSchemaValidator {
+    schema_store: Arc<SchemaStore>,
 }
 
 #[wasm_bindgen]
-pub async fn validate(schema: &str, content: &str) -> Result<bool, String> {
-    let json_schema = match serde_json::from_str::<Value>(schema) {
-        Ok(s) => s,
-        Err(e) => {
-            println!("Schema parsing error: {}", e);
-            return Err("Invalid schema".into());
+impl WasmSchemaValidator {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> WasmSchemaValidator {
+        WasmSchemaValidator {
+            schema_store: Arc::new(SchemaStore::new()),
         }
-    };
-    let json_content = match serde_json::from_str::<Value>(content) {
-        Ok(c) => c,
-        Err(e) => {
-            println!("Content parsing error: {}", e);
-            return Err("Invalid content".into());
-        }
-    };
+    }
 
-    let validator_result = jsonschema::async_options()
-        .with_retriever(HttpRetriever)
-        .build(&json_schema)
-        .await;
+    pub async fn validate(&self, schema: &str, content: &str) -> Result<bool, String> {
+        let json_schema = match serde_json::from_str::<Value>(schema) {
+            Ok(s) => s,
+            Err(e) => {
+                println!("Schema parsing error: {}", e);
+                return Err("Invalid schema".into());
+            }
+        };
 
-    let validator = match validator_result {
-        Ok(v) => v,
-        Err(e) => {
-            println!("Schema compilation error: {}", e);
-            return Err("Schema compilation failed".into());
-        }
-    };
+        let json_content = match serde_json::from_str::<Value>(content) {
+            Ok(c) => c,
+            Err(e) => {
+                println!("Content parsing error: {}", e);
+                return Err("Invalid content".into());
+            }
+        };
 
-    match validator.validate(&json_content) {
-        Ok(_) => Ok(true),
-        Err(error) => {
-            println!("Validation error: {}", error);
-            Err(error.to_string())
+        let validator_result = jsonschema::async_options()
+            .with_retriever(SchemaRetriever::new(Arc::clone(&self.schema_store)))
+            .build(&json_schema)
+            .await;
+
+        let validator = match validator_result {
+            Ok(v) => v,
+            Err(e) => {
+                println!("Schema compilation error: {}", e);
+                return Err("Schema compilation failed".into());
+            }
+        };
+
+        match validator.validate(&json_content) {
+            Ok(_) => Ok(true),
+            Err(error) => {
+                println!("Validation error: {}", error);
+                Err(error.to_string())
+            }
         }
     }
 }
@@ -65,7 +70,10 @@ mod tests {
     async fn it_works() {
         let schema = json!({"type": "string"});
         let content = json!("Hello world");
-        let result = validate(&schema.to_string(), &content.to_string()).await;
+        let schema_validator = WasmSchemaValidator::new();
+        let result = schema_validator
+            .validate(&schema.to_string(), &content.to_string())
+            .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), true);
     }
@@ -74,7 +82,10 @@ mod tests {
     async fn it_fails() {
         let schema = json!({"type": "string"});
         let content = json!(42);
-        let result = validate(&schema.to_string(), &content.to_string()).await;
+        let schema_validator = WasmSchemaValidator::new();
+        let result = schema_validator
+            .validate(&schema.to_string(), &content.to_string())
+            .await;
         assert!(result.is_err());
     }
 }
