@@ -22,13 +22,9 @@ impl AsyncRetrieve for SchemaRetriever {
     ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
         let url = uri.as_str();
 
-        if url.starts_with("http://") || url.starts_with("https://") {
-            match self.schema_store.retrieve(url.to_string()).await {
-                Ok(schema) => Ok(schema),
-                Err(e) => Err(Into::into(e)),
-            }
-        } else {
-            Err("Schema URI's protocol not supported. Check the passed URI.".into())
+        match self.schema_store.retrieve(url.to_string()).await {
+            Ok(schema) => Ok(schema),
+            Err(e) => Err(Into::into(e)),
         }
     }
 }

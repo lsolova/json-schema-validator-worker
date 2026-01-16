@@ -13,10 +13,7 @@ impl SchemaStore {
         }
     }
 
-    async fn retrieve_via_http(
-        &self,
-        url: &str,
-    ) -> Result<Value, Box<dyn Error + Send + Sync>> {
+    async fn retrieve_via_http(&self, url: &str) -> Result<Value, Box<dyn Error + Send + Sync>> {
         let resp: Response = get(url).await?;
         match resp.json::<Value>().await {
             Ok(schema) => Ok(schema),
@@ -66,7 +63,7 @@ impl SchemaStore {
                         Err(e) => Err(e),
                     }
                 } else {
-                    Err("Schema protocol is invalid. Only HTTP(S) can be resolved, if it is not in the schema store.".into())
+                    Err(format!("Schema protocol is invalid: '{}'. Only HTTP(S) can be resolved, if it is not in the schema store.", &id).into())
                 }
             }
         }

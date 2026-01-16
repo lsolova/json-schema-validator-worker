@@ -21,6 +21,19 @@ impl WasmSchemaValidator {
         }
     }
 
+    pub async fn add_schema(&self, id: String, schema: &str) -> Result<(), String> {
+        if !id.starts_with("id://") {
+            return Err("Schema ID is invalid. It should start with id:// protocol.".into());
+        };
+        let Ok(schema_content) = serde_json::from_str::<Value>(schema) else {
+            return Err("Invalid schema".into())
+        };
+        let Ok(saved) = self.schema_store.add(&id, &schema_content).await else {
+            return Err("Schema saving failed".into())
+        };
+        Ok(saved)
+    }
+
     pub async fn validate(&self, schema: &str, content: &str) -> Result<bool, String> {
         let json_schema = match serde_json::from_str::<Value>(schema) {
             Ok(s) => s,
@@ -47,7 +60,7 @@ impl WasmSchemaValidator {
             Ok(v) => v,
             Err(e) => {
                 println!("Schema compilation error: {}", e);
-                return Err("Schema compilation failed".into());
+                return Err(format!("Schema compilation failed {}", e).into());
             }
         };
 
