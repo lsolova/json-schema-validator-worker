@@ -12,7 +12,7 @@ Copy the following file into your output:
 
 First it must be initialized by passing the deployed WASM file URL.
 
-Then a simple validate can be used, by passing the URL of the schema file (http:// or https:// protocols are accepted) and the data to be validated. If a schema is downloaded, then it is cached until the session exists.
+Then a simple validate can be used, by passing the URL of the schema file (http://, https:// and custom id:// protocols are accepted) and the data to be validated. If a schema is downloaded, then it is cached until the session exists.
 
 ```ts
 import { SchemaValidator } from "@lsolova/json-schema-validator";
@@ -20,14 +20,24 @@ import { SchemaValidator } from "@lsolova/json-schema-validator";
 async function initValidation {
     // Set the wasmURL to the URL of the exposed WASM file (see more details below)
     await SchemaValidator.init(wasmURL);
+    // If there would be any schema to be registered, then it can be done after the initialization
+    await SchemaValidator.registerSchema(id, schema);
 };
 
+// The schemaURL parameter could be a schema URI (either HTTP(S) or ID)
 async function validate(schemaURL, data) {
     await SchemaValidator.validate(schemaURL, data);
 };
 ```
 
-This validator supports HTTP/HTTPS references within the schema files (see `$ref`).
+This validator supports the following references within the schema files (see `$ref`).
+
+| Name    | Example                               |
+|---------|---------------------------------------|
+| HTTP(S) | `https://example.com/schemas/my.json` |
+| ID      | `id://my.example.schema`              |
+
+### Schema example
 
 ```json
 {
