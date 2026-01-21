@@ -5,6 +5,10 @@ export class SchemaValidator {
     private _wasmStatus: WasmStatus = WasmStatusSet.UNINITIALIZED;
     private _schemaValidator: WasmSchemaValidator | null = null;
 
+    /** Initializing the SchemaValidator by loading the underlying WASM module.
+     *
+     *  @param wasmURL The absolute or relative URL of the WASM module
+     */
     async init(wasmURL: string): Promise<void> {
         if (this._wasmStatus === WasmStatusSet.UNINITIALIZED || this._wasmStatus === WasmStatusSet.FAILED) {
             try {
@@ -18,6 +22,11 @@ export class SchemaValidator {
         }
     }
 
+    /** Registering a schema with a custom identifier. This id can be used for the validation afterwards.
+     *
+     *  @param id Identifier of the schema, prefixed with `id://` protocol.
+     *  @param schema Content of the schema. It can be provided as string or an object.
+     */
     async registerSchema(id: string, schema: string | object): Promise<void> {
         if (this._wasmStatus !== WasmStatusSet.READY || this._schemaValidator === null) {
             throw new Error("WASM is not initialized. Call init() first.");
@@ -31,17 +40,22 @@ export class SchemaValidator {
         }
     }
 
-    async validate(schemaURL: string, data: object): Promise<boolean> {
+    /** Validates the data with the provided schema (or the schema related to the provided URI).
+     *
+     *  @param schema A schema URI (HTTP(S) or ID) or the schema itself.
+     *  @param data The data to be validated against the schema.
+     *  @returns Promise<boolean> true if the data is valid
+     *  @throws An error if the data is invalid. This error can contain additional details of the validity check result.
+     */
+    async validate(schema: string | object, data: string | object): Promise<boolean> {
         if (this._wasmStatus !== WasmStatusSet.READY || this._schemaValidator === null) {
             throw new Error("WASM is not initialized. Call init() first.");
         }
-        if (!schemaURL.startsWith("http://") && !schemaURL.startsWith("https://") && !schemaURL.startsWith("id://")) {
-            throw new Error("Value of schemaURL is invalid. It must start with 'http://', 'https://' or 'id://'.");
-        }
+
         try {
-            let schema = JSON.stringify({ "$ref": schemaURL });
-            let dataString = JSON.stringify(data);
-            const isValid = await this._schemaValidator.validate(schema, dataString);
+            const schemaOrUri = typeof schema === "string" ? schema : JSON.stringify(schema);
+            const dataString = typeof data === "string" ? data : JSON.stringify(data);
+            const isValid = await this._schemaValidator.validate(schemaOrUri, dataString);
             return isValid;
         } catch (error) {
             throw error instanceof Error ? error.message : new Error(JSON.stringify(error));

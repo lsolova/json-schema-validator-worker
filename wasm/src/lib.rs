@@ -1,11 +1,13 @@
-use schema_retriever::SchemaRetriever;
-use schema_store::SchemaStore;
+use crate::schema_retriever::SchemaRetriever;
+use crate::schema_store::SchemaStore;
+use crate::schema_utils::{to_json_value, is_id, is_json, is_uri};
 use serde_json::Value;
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 
 mod schema_retriever;
 mod schema_store;
+mod schema_utils;
 
 #[wasm_bindgen]
 pub struct WasmSchemaValidator {
@@ -22,23 +24,27 @@ impl WasmSchemaValidator {
     }
 
     pub async fn add_schema(&self, id: String, schema: &str) -> Result<(), String> {
-        if !id.starts_with("id://") {
+        if !is_id(&id) {
             return Err("Schema ID is invalid. It should start with id:// protocol.".into());
         };
-        let Ok(schema_content) = serde_json::from_str::<Value>(schema) else {
-            return Err("Invalid schema".into())
-        };
+        let schema_content = to_json_value(schema)?;
         let Ok(saved) = self.schema_store.add(&id, &schema_content).await else {
-            return Err("Schema saving failed".into())
+            return Err("Schema saving failed".into());
         };
         Ok(saved)
     }
 
     pub async fn validate(&self, schema: &str, content: &str) -> Result<bool, String> {
-        let json_schema = match serde_json::from_str::<Value>(schema) {
-            Ok(s) => s,
-            Err(e) => {
-                return Err(format!("Invalid schema {}", e).into());
+        let json_schema = match schema {
+            s if is_uri(s) => match self.schema_store.retrieve(schema.to_string()).await {
+                Ok(s) => s,
+                Err(e) => {
+                    return Err(format!("Schema not found. {}", e).into());
+                }
+            },
+            s if is_json(s) => to_json_value(schema)?,
+            _ => {
+                return Err("Schema must be a valid URI or JSON string".into());
             }
         };
 
