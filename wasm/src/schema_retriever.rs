@@ -20,9 +20,7 @@ impl AsyncRetrieve for SchemaRetriever {
         &self,
         uri: &Uri<String>,
     ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
-        let url = uri.as_str();
-
-        match self.schema_store.retrieve(url.to_string()).await {
+        match self.schema_store.retrieve(uri.to_string()).await {
             Ok(schema) => Ok(schema),
             Err(e) => Err(Into::into(e)),
         }
