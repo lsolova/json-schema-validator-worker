@@ -120,14 +120,11 @@ async function sample() {
 
 ## Development
 
-1. Change to _wasm_ directory `cd wasm`
-2. Run `cargo install`
-3. Run `./build.sh`
-4. Change back to root directory `cd ..`
-5. Run `npm i`
-6. Run `npm run build:worker`
+1. Run `npm i`
+2. Run `npm run build`
 
 ### Local testing
 
 To start the web application on localhost, run `npm run serve`.
-To check the Node.js run on localhost, run `node node-example.js`.
+
+To check the Node.js run on localhost, run `npx tsx node-example.ts`.

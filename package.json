@@ -1,6 +1,6 @@
 {
   "name": "@lsolova/json-schema-validator",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "JSON schema validator (with Rust WASM based on jsonschema)",
   "repository": {
     "type": "git",
@@ -25,6 +25,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
+    "@types/node": "25.1.0",
     "esbuild": "0.27.2",
     "esbuild-plugin-copy": "2.1.1",
     "esbuild-plugin-d.ts": "1.3.1",

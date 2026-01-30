@@ -3,11 +3,10 @@ import { SchemaValidator } from "./dist/index.js";
 
 async function validateWithWasm() {
     try {
-        const wasmPath = "./dist/assets/schema_validator.wasm";
-        const wasmBuffer = await readFile(wasmPath);
+        const wasmBuffer = await readFile("./dist/assets/schema_validator.wasm");
         await SchemaValidator.init(wasmBuffer);
 
-        const schema = readFile("./public/test.schema.json");
+        const schema = await readFile("./public/test-node.schema.json", { encoding: "utf8" });
         const data = {
             name: "John",
             age: 30,
