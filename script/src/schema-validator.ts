@@ -31,7 +31,7 @@ export class SchemaValidator {
         }
     }
 
-    async validate(schema: string | object, data: string | object): Promise<boolean> {
+    async validate(schema: string | object, data: string | object): Promise<void> {
         if (this._wasmStatus !== WasmStatusSet.READY || this._schemaValidator === null) {
             throw new Error("WASM is not initialized. Call init() first.");
         }
@@ -39,10 +39,21 @@ export class SchemaValidator {
         try {
             const schemaOrUri = typeof schema === "string" ? schema : JSON.stringify(schema);
             const dataString = typeof data === "string" ? data : JSON.stringify(data);
-            const isValid = await this._schemaValidator.validate(schemaOrUri, dataString);
-            return isValid;
+            await this._schemaValidator.validate(schemaOrUri, dataString);
         } catch (error) {
-            throw error instanceof Error ? error.message : new Error(JSON.stringify(error));
+            if (typeof error === "string") {
+                let errorContent;
+                try {
+                    errorContent = JSON.parse(error);
+                } catch {}
+                if (!errorContent) {
+                    errorContent = {
+                        error
+                    }
+                }
+                throw errorContent;
+            }
+            throw {error};
         }
     }
 }
