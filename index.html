@@ -59,6 +59,9 @@
         border: 1px solid #f5c6cb;
         display: block;
       }
+      #result.error span {
+        display: block;
+      }
     </style>
   </head>
   <body>
@@ -118,15 +121,20 @@
           const schemaURL = schemaInput.value;
           const data = JSON.parse(dataInput.value);
 
-          const isValid = await SchemaValidator.validate(schemaURL, data);
+          await SchemaValidator.validate(schemaURL, data);
 
-          resultDiv.className = isValid ? "valid" : "invalid";
-          resultDiv.textContent = isValid
-            ? "✓ Validation successful - Data is valid according to the schema"
-            : "✗ Validation failed - Data does not match the schema";
+          resultDiv.className = "valid";
+          resultDiv.textContent = "✓ Validation successful - Data is valid according to the schema";
         } catch (error) {
           resultDiv.className = "error";
-          resultDiv.textContent = `Error: ${error.message}`;
+          const mainErrorMessageEl = document.createElement("span");
+          mainErrorMessageEl.appendChild(document.createTextNode("✗ Validation failed"));
+          resultDiv.appendChild(mainErrorMessageEl);
+          Object.keys(error).forEach(eK => {
+            const errorMessageItemEl = document.createElement("span");
+            errorMessageItemEl.textContent = `${eK} -> ${error[eK]}`;
+            resultDiv.appendChild(errorMessageItemEl);
+          })
         }
         const perfData = performance.measure("validation-length", "start-validation");
         console.log(`Schema validation takes ${perfData.duration.toFixed(2)} ms`);

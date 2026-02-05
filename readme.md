@@ -4,11 +4,23 @@ This is a JSON schema validating solution for browser and Node.js environments. 
 
 ## Usage
 
+SchemaValidator must be initialized first, by passing the deployed WASM file URL to _SchemaValidator.init_.
+
+The _SchemaValidator.validate_ is asynchronous and returns a `Promise<void>`. If error happens then an object is rejected, which contains field name - error pairs, or an object with an error variable.
+
+```ts
+type SchemaValidationError = {
+    error: string | object
+} | {
+    // Key is field name, value is the validation error related to that field
+    [key: string]: string
+}
+```
+
 ### Browser
 
 Copy the following file into your output directory: `@lsolova/json-schema-validator/dist/assets/schema_validator.wasm`.
 
-SchemaValidator must be initialized first, by passing the deployed WASM file URL.
 
 Then a simple validate call can be used, by passing the content or the URL of the schema file (_http://_, _https://_ and custom _id://_ protocols are supported) and the data to be validated. If an HTTP(S) schema is downloaded once, then it is cached until the SchemaValidator object exists.
 

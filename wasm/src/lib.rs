@@ -1,7 +1,8 @@
 use crate::schema_retriever::SchemaRetriever;
 use crate::schema_store::SchemaStore;
-use crate::schema_utils::{to_json_value, is_id, is_json, is_uri};
+use crate::schema_utils::{is_id, is_json, is_uri, to_json_value};
 use serde_json::Value;
+use std::collections::HashMap;
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 
@@ -34,7 +35,7 @@ impl WasmSchemaValidator {
         Ok(saved)
     }
 
-    pub async fn validate(&self, schema: &str, content: &str) -> Result<bool, String> {
+    pub async fn validate(&self, schema: &str, content: &str) -> Result<(), String> {
         let json_schema = match schema {
             s if is_uri(s) => match self.schema_store.retrieve(schema.to_string()).await {
                 Ok(s) => s,
@@ -55,23 +56,28 @@ impl WasmSchemaValidator {
             }
         };
 
-        let validator_result = jsonschema::async_options()
+        let async_validator = jsonschema::async_options()
             .with_retriever(SchemaRetriever::new(Arc::clone(&self.schema_store)))
             .build(&json_schema)
             .await;
 
-        let validator = match validator_result {
+        let validator = match async_validator {
             Ok(v) => v,
             Err(e) => {
                 return Err(format!("Schema compilation failed {}", e).into());
             }
         };
 
-        match validator.validate(&json_content) {
-            Ok(_) => Ok(true),
-            Err(error) => {
-                println!("Validation error: {}", error);
-                Err(error.to_string())
+        let evaluation = validator.evaluate(&json_content);
+        match evaluation.flag().valid {
+            true => Ok(()),
+            false => {
+                let mut error_map = HashMap::<String, String>::new();
+                evaluation
+                    .iter_errors()
+                    .for_each(|f| { error_map.insert(f.instance_location.to_string(), f.error.to_string()); });
+                let err_value = serde_json::to_string(&error_map).unwrap_or_else(|_| "Failed to serialize errors".to_string());
+                Err(err_value.into())
             }
         }
     }
@@ -91,17 +97,18 @@ mod tests {
             .validate(&schema.to_string(), &content.to_string())
             .await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), true);
+        assert_eq!(result.unwrap(), ());
     }
 
     #[tokio::test]
     async fn it_fails() {
-        let schema = json!({"type": "string"});
-        let content = json!(42);
+        let schema = json!({"type": "object", "properties": {"name": {"type": "string"}, "initials": { "type": "string"}}, "required": ["initials", "name"]});
+        let content = json!({ "name": 123 });
         let schema_validator = WasmSchemaValidator::new();
         let result = schema_validator
             .validate(&schema.to_string(), &content.to_string())
             .await;
         assert!(result.is_err());
+        print!("{}", result.unwrap_err());
     }
 }
