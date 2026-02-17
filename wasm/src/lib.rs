@@ -1,6 +1,6 @@
 use crate::schema_retriever::SchemaRetriever;
 use crate::schema_store::SchemaStore;
-use crate::schema_utils::{is_id, is_json, is_uri, to_json_value};
+use crate::schema_utils::{is_http, is_json, to_json_value};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -24,20 +24,34 @@ impl WasmSchemaValidator {
         }
     }
 
-    pub async fn add_schema(&self, id: String, schema: &str) -> Result<(), String> {
-        if !is_id(&id) {
-            return Err("Schema ID is invalid. It should start with id:// protocol.".into());
+    /// Adding a JSON schema to the store with a unique URI. The URI should start with `http://` or `https://` protocol.
+    pub async fn add_schema(&self, uri: String, schema: &str) -> Result<(), String> {
+        if !is_http(&uri) {
+            return Err("Schema ID is invalid. It should start with http(s):// protocol.".into());
         };
         let schema_content = to_json_value(schema)?;
-        let Ok(saved) = self.schema_store.add(&id, &schema_content).await else {
+        let Ok(saved) = self.schema_store.add(&uri, &schema_content).await else {
             return Err("Schema saving failed".into());
         };
         Ok(saved)
     }
 
+    /// Validating a JSON content against a JSON schema. The schema can be provided as a URI or as a JSON string.
+    ///
+    /// If the schema is provided as a URI, it could be retrieved:
+    /// 
+    /// - Resolving from the previously registered schemas (see `add_schema` method)
+    /// - Downloading from the internet
+    /// 
+    /// If the schema is provided as a JSON string, it will be parsed and used for validation.
+    ///
+    /// If the validation fails, a JSON string containing the validation errors will be returned.
+    ///
+    /// The keys of the JSON object are the locations of the errors within the validated document, and the values are
+    /// the related error messages.
     pub async fn validate(&self, schema: &str, content: &str) -> Result<(), String> {
         let json_schema = match schema {
-            s if is_uri(s) => match self.schema_store.retrieve(schema.to_string()).await {
+            s if is_http(s) => match self.schema_store.retrieve(schema.to_string()).await {
                 Ok(s) => s,
                 Err(e) => {
                     return Err(format!("Schema not found. {}", e).into());

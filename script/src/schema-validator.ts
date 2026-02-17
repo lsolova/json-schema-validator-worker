@@ -18,14 +18,14 @@ export class SchemaValidator {
         }
     }
 
-    async registerSchema(id: string, schema: string | object): Promise<void> {
+    async registerSchema(uri: string, schema: string | object): Promise<void> {
         if (this._wasmStatus !== WasmStatusSet.READY || this._schemaValidator === null) {
             throw new Error("WASM is not initialized. Call init() first.");
         }
 
         try {
             const schemaContent = typeof schema === "string" ? schema : JSON.stringify(schema);
-            await this._schemaValidator.add_schema(id, schemaContent);
+            await this._schemaValidator.add_schema(uri, schemaContent);
         } catch (error) {
             throw error instanceof Error ? error.message : new Error(JSON.stringify(error));
         }

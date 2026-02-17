@@ -10,7 +10,7 @@ export const SchemaValidator = {
     init: schemaValidator.init.bind(schemaValidator),
     /** Registering a schema with a custom identifier. This id can be used for the validation afterwards.
      *
-     *  @param id string Identifier of the schema, prefixed with `id://` protocol.
+     *  @param uri string Identifier of the schema, prefixed with `http://` or `https://` protocol.
      *  @param schema string Content of the schema. It can be provided as string or an object.
      */
     registerSchema: schemaValidator.registerSchema.bind(schemaValidator),

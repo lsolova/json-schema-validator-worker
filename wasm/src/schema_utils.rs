@@ -3,19 +3,10 @@ use serde_json::Value;
 use std::sync::LazyLock;
 
 const HTTPS_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new("^https?://.*").unwrap());
-const ID_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new("^id://.*").unwrap());
 const JSON_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new("^\\{.*").unwrap());
-
-pub fn is_id(uri: &str) -> bool {
-    ID_REGEX.is_match(uri)
-}
 
 pub fn is_http(uri: &str) -> bool {
     HTTPS_REGEX.is_match(uri)
-}
-
-pub fn is_uri(uri: &str) -> bool {
-    is_id(uri) || is_http(uri)
 }
 
 pub fn is_json(uri: &str) -> bool {
@@ -34,23 +25,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_is_id_valid_id_uri() {
-        assert!(is_id("id://example.com/schema"));
-        assert!(is_id("id://my-schema"));
-        assert!(is_id("id://test"));
-    }
-
-    #[test]
-    fn test_is_id_invalid_id_uri() {
-        assert!(!is_id("http://example.com"));
-        assert!(!is_id("https://example.com"));
-        assert!(!is_id("example.com"));
-        assert!(!is_id("{\"type\": \"object\"}"));
-        assert!(!is_id(""));
-        assert!(!is_id("id"));
-    }
-
-    #[test]
     fn test_is_http_valid_http_uri() {
         assert!(is_http("http://example.com"));
         assert!(is_http("https://example.com"));
@@ -65,25 +39,6 @@ mod tests {
         assert!(!is_http("ftp://example.com"));
         assert!(!is_http("{\"type\": \"object\"}"));
         assert!(!is_http(""));
-    }
-
-    #[test]
-    fn test_is_uri_with_id() {
-        assert!(is_uri("id://example.com/schema"));
-    }
-
-    #[test]
-    fn test_is_uri_with_http() {
-        assert!(is_uri("http://example.com"));
-        assert!(is_uri("https://example.com"));
-    }
-
-    #[test]
-    fn test_is_uri_invalid() {
-        assert!(!is_uri("example.com"));
-        assert!(!is_uri("{\"type\": \"object\"}"));
-        assert!(!is_uri(""));
-        assert!(!is_uri("file:///path/to/file"));
     }
 
     #[test]

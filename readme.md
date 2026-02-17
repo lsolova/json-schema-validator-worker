@@ -22,7 +22,7 @@ type SchemaValidationError = {
 Copy the following file into your output directory: `@lsolova/json-schema-validator/dist/assets/schema_validator.wasm`.
 
 
-Then a simple validate call can be used, by passing the content or the URL of the schema file (_http://_, _https://_ and custom _id://_ protocols are supported) and the data to be validated. If an HTTP(S) schema is downloaded once, then it is cached until the SchemaValidator object exists.
+Then a simple validate call can be used, by passing the content or the URL of the schema file (_http://_ and _https://_ protocols are supported) and the data to be validated. If an HTTP(S) schema is downloaded once, then it is cached until the SchemaValidator object exists.
 
 ```ts
 import { SchemaValidator } from "@lsolova/json-schema-validator";
@@ -32,7 +32,7 @@ async function initValidation {
     await SchemaValidator.init(wasmURL);
     // If there would be any schema to be registered, then it can be done after the
     // initialization, but before the first usage of that schema
-    await SchemaValidator.registerSchema(id, schema);
+    await SchemaValidator.registerSchema(uri, schema);
 };
 
 // The schema parameter could be a schema URI (either HTTP(S) or (ID)) or a schema definition
@@ -41,12 +41,7 @@ async function validate(schema, data) {
 };
 ```
 
-This validator supports the following references within the schema files (see `$ref` in the example).
-
-| Name    | Example                               |
-|---------|---------------------------------------|
-| HTTP(S) | `https://example.com/schemas/my.json` |
-| ID      | `id://my.example.schema`              |
+This validator supports HTTP(S) references within the schema files (for example: `https://example.com/schemas/my.json` or see `$ref` in the schema example).
 
 #### Schema example
 
@@ -114,7 +109,7 @@ async function initValidation() {
 }
 ```
 
-### Node.js
+### Node.js: Using Node functions
 
 The _SchemaValidator.init_ supports passing a module instead of a path. Therefore WASM can be read from file and passed to the init function.
 

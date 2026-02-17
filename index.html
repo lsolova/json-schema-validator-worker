@@ -71,7 +71,7 @@
         <label for="schema">Schema URL:</label>
         <select id="schema">
           <option value="http://localhost:8000/public/test.schema.json">http://localhost:8000/public/test.schema.json</option>
-          <option value="id://user-1-0-0.json">id://user-1-0-0.json</option>
+          <option value="http://localhost:8000/schemas/user-1-0-0.schema.json">http://localhost:8000/schemas/user-1-0-0.schema.json</option>
         </select>
       </div>
       <div>
@@ -85,10 +85,10 @@
     <script type="module">
       import { SchemaValidator } from "./dist/index.js";
 
+      const schemaID = "http://localhost:8000/schemas/user-1-0-0.schema.json";
       SchemaValidator.init("/dist/assets/schema_validator.wasm").then(() => {
-
-        let internalSchema = JSON.stringify({
-          "$id": "http://example.com/schemas/test.schema.json",
+        const internalSchema = JSON.stringify({
+          "$id": schemaID,
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "title": "User",
           "type": "object",
@@ -98,11 +98,10 @@
           },
           "required": ["name", "initials"]
         });
-        return SchemaValidator.registerSchema("id://user-1-0-0.json", internalSchema);
+        return SchemaValidator.registerSchema(schemaID, internalSchema);
       }).then(() => {
-        console.debug("Schema registered", "id://user-1-0-0.json");
+        console.debug("Schema registered", schemaID);
       }). catch(console.log);
-
 
       const schemaInput = document.getElementById("schema");
       schemaInput.value = "http://localhost:8000/public/test.schema.json";
