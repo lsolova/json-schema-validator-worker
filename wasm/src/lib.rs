@@ -39,10 +39,10 @@ impl WasmSchemaValidator {
     /// Validating a JSON content against a JSON schema. The schema can be provided as a URI or as a JSON string.
     ///
     /// If the schema is provided as a URI, it could be retrieved:
-    /// 
+    ///
     /// - Resolving from the previously registered schemas (see `add_schema` method)
     /// - Downloading from the internet
-    /// 
+    ///
     /// If the schema is provided as a JSON string, it will be parsed and used for validation.
     ///
     /// If the validation fails, a JSON string containing the validation errors will be returned.
@@ -50,6 +50,7 @@ impl WasmSchemaValidator {
     /// The keys of the JSON object are the locations of the errors within the validated document, and the values are
     /// the related error messages.
     pub async fn validate(&self, schema: &str, content: &str) -> Result<(), String> {
+        // Resolving the schema
         let json_schema = match schema {
             s if is_http(s) => match self.schema_store.retrieve(schema.to_string()).await {
                 Ok(s) => s,
@@ -60,13 +61,6 @@ impl WasmSchemaValidator {
             s if is_json(s) => to_json_value(schema)?,
             _ => {
                 return Err("Schema must be a valid URI or JSON string".into());
-            }
-        };
-
-        let json_content = match serde_json::from_str::<Value>(content) {
-            Ok(c) => c,
-            Err(e) => {
-                return Err(format!("Invalid content {}", e).into());
             }
         };
 
@@ -82,6 +76,15 @@ impl WasmSchemaValidator {
             }
         };
 
+        // Parsing the content
+        let json_content = match serde_json::from_str::<Value>(content) {
+            Ok(c) => c,
+            Err(e) => {
+                return Err(format!("Invalid content {}", e).into());
+            }
+        };
+
+        // Validating the content against the schema
         let evaluation = validator.evaluate(&json_content);
         match evaluation.flag().valid {
             true => Ok(()),

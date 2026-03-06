@@ -1,7 +1,8 @@
-use crate::schema_utils::is_http;
-use reqwest::{get, Response};
+use crate::{schema_store::store_utils::retrieve_via_http, schema_utils::is_http};
 use serde_json::Value;
-use std::{collections::HashMap, error::Error, sync::Mutex};
+use std::{collections::HashMap, error::Error, io:: {Error as IoError, ErrorKind}, sync::Mutex};
+
+mod store_utils;
 
 pub struct SchemaStore {
     schema_store: Mutex<HashMap<String, Value>>,
@@ -11,14 +12,6 @@ impl SchemaStore {
     pub fn new() -> Self {
         SchemaStore {
             schema_store: Mutex::new(HashMap::new()),
-        }
-    }
-
-    async fn retrieve_via_http(&self, uri: &str) -> Result<Value, Box<dyn Error + Send + Sync>> {
-        let resp: Response = get(uri).await?;
-        match resp.json::<Value>().await {
-            Ok(schema) => Ok(schema),
-            Err(e) => Err(Into::into(e)),
         }
     }
 
@@ -56,12 +49,17 @@ impl SchemaStore {
             Some(schema) => Ok(schema),
             None => {
                 if is_http(&uri) {
-                    match self.retrieve_via_http(&uri).await {
+                    match retrieve_via_http(&uri).await {
                         Ok(schema) => {
                             let _ = self.add(&uri, &schema).await;
                             Ok(schema)
                         }
-                        Err(e) => Err(e),
+                        Err(e) => Err(Box::new(
+                            IoError::new(
+                                ErrorKind::Other,
+                                format!("Failed to retrieve schema from '{}': {}", &uri, e)
+                            )
+                        ))
                     }
                 } else {
                     Err(format!("Schema protocol is invalid: '{}'. Only HTTP(S) can be resolved, if it is not in the schema store.", &uri).into())

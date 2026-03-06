@@ -21,8 +21,9 @@ type SchemaValidationError = {
 
 Copy the following file into your output directory: `@lsolova/json-schema-validator/dist/assets/schema_validator.wasm`.
 
-
 Then a simple validate call can be used, by passing the content or the URL of the schema file (_http://_ and _https://_ protocols are supported) and the data to be validated. If an HTTP(S) schema is downloaded once, then it is cached until the SchemaValidator object exists.
+
+> Download is part of the normal network traffic via browser's fetch. This allows caching schemas by [PWA](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/What_is_a_progressive_web_app), if implemented.
 
 ```ts
 import { SchemaValidator } from "@lsolova/json-schema-validator";
