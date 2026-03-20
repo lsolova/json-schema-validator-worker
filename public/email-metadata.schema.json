@@ -1,0 +1,25 @@
+{
+    "$id": "https://example.com/schemas/email-metadata.schema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Email Metadata",
+    "type": "object",
+    "required": ["from", "to", "subject"],
+    "properties": {
+        "from": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        },
+        "to": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        },
+        "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+        }
+    },
+    "additionalProperties": false
+}
