@@ -34,7 +34,10 @@ async function validateWithWasm() {
     console.info("Data 2 is valid.");
 
     await SchemaValidator.validate("https://json-schema.org/draft/2020-12/schema", schema2);
-    console.info("Schema 2 is valid.");
+    console.info("Schema 2 is valid (by draft/2020-12).");
+
+    await SchemaValidator.validate("https://json-schema.org/draft-07/schema", schema2);
+    console.info("Schema 2 is valid (by draft-07).");
   } catch (error) {
     console.error("Failed", error);
   }

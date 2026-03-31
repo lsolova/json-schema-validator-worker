@@ -30,7 +30,7 @@ impl WasmSchemaValidator {
             return Err("Schema ID is invalid. It should start with http(s):// protocol.".into());
         };
         let schema_content = to_json_value(schema)?;
-        let Ok(saved) = self.schema_store.add(&uri, &schema_content).await else {
+        let Ok(saved) = self.schema_store.add_schema(&uri, &schema_content).await else {
             return Err("Schema saving failed".into());
         };
         Ok(saved)
@@ -64,16 +64,34 @@ impl WasmSchemaValidator {
             }
         };
 
-        let async_validator = jsonschema::async_options()
-            .with_retriever(SchemaRetriever::new(Arc::clone(&self.schema_store)))
-            .build(&json_schema)
-            .await;
+        let schema_id = match json_schema.get("$id") {
+            Some(id) => id.as_str().unwrap_or("none"),
+            None => "none".into(),
+        };
 
-        let validator = match async_validator {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(format!("Schema compilation failed {}", e).into());
+        let validator = match self
+            .schema_store
+            .get_validator(&schema_id.to_string())
+            .await
+        {
+            Ok(Some(v)) => v,
+            Ok(None) => {
+                let Ok(async_validator) = jsonschema::async_options()
+                    .with_retriever(SchemaRetriever::new(Arc::clone(&self.schema_store)))
+                    .build(&json_schema)
+                    .await
+                else {
+                    return Err("Schema compilation failed".into());
+                };
+                if schema_id != "none" {
+                    let _ = self
+                        .schema_store
+                        .add_validator(&schema_id.to_string(), &async_validator)
+                        .await;
+                }
+                async_validator
             }
+            Err(e) => return Err(format!("{}", e).into()),
         };
 
         // Parsing the content
@@ -90,10 +108,11 @@ impl WasmSchemaValidator {
             true => Ok(()),
             false => {
                 let mut error_map = HashMap::<String, String>::new();
-                evaluation
-                    .iter_errors()
-                    .for_each(|f| { error_map.insert(f.instance_location.to_string(), f.error.to_string()); });
-                let err_value = serde_json::to_string(&error_map).unwrap_or_else(|_| "Failed to serialize errors".to_string());
+                evaluation.iter_errors().for_each(|f| {
+                    error_map.insert(f.instance_location.to_string(), f.error.to_string());
+                });
+                let err_value = serde_json::to_string(&error_map)
+                    .unwrap_or_else(|_| "Failed to serialize errors".to_string());
                 Err(err_value.into())
             }
         }

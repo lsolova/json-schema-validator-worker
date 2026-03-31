@@ -1,12 +1,20 @@
-# JSON schema validator
+# JSON Schema Validator
 
-This is a JSON schema validating solution for browser and Node.js environments. It uses _jsonschema_ Rust package wrapped into a WASM module and exposing functionality in SchemaValidator object.
+A JSON schema validator for browser and Node.js environments. It wraps the _jsonschema_ Rust crate as a WebAssembly module, exposing functionality through the SchemaValidator object.
 
-## Usage
+## Installation
 
-SchemaValidator must be initialized first, by passing the deployed WASM file URL to _SchemaValidator.init_.
+```bash
+npm install @lsolova/json-schema-validator
+```
 
-The _SchemaValidator.validate_ is asynchronous and returns a `Promise<void>`. If error happens then an object is rejected, which contains field name - error pairs, or an object with an error variable.
+### Initialization
+
+You must initialize SchemaValidator first by passing the WASM file to `SchemaValidator.init()`. The initialization is an async operation and should be done once at application startup.
+
+### Validation
+
+`SchemaValidator.validate()` is asynchronous and returns a `Promise<void>`. If validation fails, the promise is rejected with a `SchemaValidationError` object.
 
 ```ts
 type SchemaValidationError = {
@@ -17,52 +25,77 @@ type SchemaValidationError = {
 }
 ```
 
+### Error handling example
+
+```ts
+try {
+    await SchemaValidator.validate(schema, data);
+    console.log("Validation passed");
+} catch (error) {
+    console.error("Validation failed", error);
+}
+```
+
 ### Browser
 
-Copy the following file into your output directory: `@lsolova/json-schema-validator/dist/assets/schema_validator.wasm`.
+Browser integration requires the WASM file to be served from your deployment. The WASM file must be copied to your output directory during the build process (see deployment section below).
 
-Then a simple validate call can be used, by passing the content or the URL of the schema file (_http://_ and _https://_ protocols are supported) and the data to be validated. If an HTTP(S) schema is downloaded once, then it is cached until the SchemaValidator object exists.
+#### Basic usage
 
-> Download is part of the normal network traffic via browser's fetch. This allows caching schemas by [PWA](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/What_is_a_progressive_web_app), if implemented.
+You can validate by passing either:
+- **Schema URL**: A URL to a remote schema file (HTTP(S) or a relative path)
+- **Schema content**: The schema definition as a JSON object or string
+
+Schemas are automatically cached for the lifetime of the SchemaValidator object, improving validation performance on subsequent calls.
 
 ```ts
 import { SchemaValidator } from "@lsolova/json-schema-validator";
 
-async function initValidation {
-    // Set the wasmURL to the URL of the exposed WASM file (see more details below)
+// Initialize once at app startup
+async function initValidation(wasmURL: string) {
+    // wasmURL is the path to the exposed WASM file
     await SchemaValidator.init(wasmURL);
-    // If there would be any schema to be registered, then it can be done after the
-    // initialization, but before the first usage of that schema
-    await SchemaValidator.registerSchema(uri, schema);
-};
+    // Optionally pre-register schemas to avoid runtime loading
+    await SchemaValidator.registerSchema("my-schema-id", schemaObject);
+}
 
-// The schema parameter could be a schema URI (either HTTP(S) or (ID)) or a schema definition
-async function validate(schema, data) {
-    await SchemaValidator.validate(schema, data);
-};
+// Use throughout your app
+async function validateData(schema: string | object, data: unknown) {
+    try {
+        await SchemaValidator.validate(schema, data);
+        // Validation passed
+    } catch (error) {
+        // Handle validation errors
+    }
+}
 ```
 
-This validator supports HTTP(S) references within the schema files (for example: `https://example.com/schemas/my.json` or see `$ref` in the schema example).
+#### Schema references
 
-#### Schema example
+This validator fully supports JSON Schema `$ref` directives, including HTTP(S) references. Schemas can reference other schemas via URLs or IDs.
 
 ```json
 {
+    "$id": "my-schema-id",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "properties": {
         "name": {"type": "string"},
-        "email": {"$ref": "http://example.com/schemas/email.schema.json"}
+        "email": {"$ref": "https://example.com/schemas/email.schema.json"}
     },
     "required": ["name", "email"]
 }
 ```
 
+#### Performance optimization
+
+Validators generated from schemas with a `$id` are internally cached. This can significantly improve performance: subsequent validations with the same validator can be **75% faster** due to caching.
+
 #### Security
 
-Though it does not use eval, there is a special _Content Security Policy_ setting required by high security environments.
+Although it doesn't use eval, a special Content Security Policy setting is required in high-security environments.
 
-If any `script-src` is set in the _Content-Security-Policy_ header, then a `'wasm-unsafe-eval'` entry must be added into the script-src section of this header. (Details on [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src#unsafe_webassembly_execution)).
+If a `script-src` directive is set in the Content-Security-Policy header, `'wasm-unsafe-eval'` must be added to it. (See [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src#unsafe_webassembly_execution) for details.)
 
 ```plain
 Content-Security-Policy: ...;script-src your entries 'wasm-unsafe-eval'; ...
@@ -70,69 +103,99 @@ Content-Security-Policy: ...;script-src your entries 'wasm-unsafe-eval'; ...
 
 ### Node.js
 
-Thanks to WASM support of Node.js, this module can be used in Node.js environment too.
+This module runs in Node.js thanks to its native WebAssembly support. It's a pure ESM module and cannot be used with CommonJS.
 
-This is an ESM module. Therefore it can be imported only using `import`, `require` is not supported.
+#### Setup
 
-It should be initialized by loading the WASM module first, before any validation.
+Load the WASM file once at application startup before performing any validations:
 
 ```js
 import { readFile } from "node:fs/promises";
 import { SchemaValidator } from "@lsolova/json-schema-validator";
 
-async function sample() {
+// Initialize at app startup
+async function initValidator() {
     const wasmBuffer = await readFile(
         "./node_modules/@lsolova/json-schema-validator/dist/assets/schema_validator.wasm"
     );
     await SchemaValidator.init(wasmBuffer);
+}
 
-    const schemaContent = await readFile("./schemas/my.schema.json", { encoding: "utf8" });
-    await SchemaValidator.validate(schemaContent, myContentToValidate);
+// Use throughout your app
+async function validateConfig(data) {
+    const schemaContent = await readFile("./schema.json", { encoding: "utf8" });
+    try {
+        await SchemaValidator.validate(schemaContent, data);
+        console.log("Valid");
+    } catch (error) {
+        console.error("Validation failed:", error);
+    }
 }
 ```
 
-## How to add WASM file to your deployment?
+#### How it works
 
-### Browser: Using esbuild
+Node.js has no window object and this WASM can use _Window.fetch_ only. Therefore in Node environment Reqwest is utilized.
 
-TBD
+## Deployment
 
-### Browser: Using Vite
+The WASM file must be accessible to your application at runtime. The approach depends on your build tool.
 
-Please, use the [explicit URL import](https://vite.dev/guide/assets#explicit-url-imports) feature of Vite passing WASM URL to the _SchemaValidator.init_ function. Everything else will be managed by Vite build.
+### Vite
+
+Vite has built-in support for assets by URL. Use the [explicit URL import](https://vite.dev/guide/assets#explicit-url-imports) syntax:
 
 ```ts
 import { SchemaValidator } from "@lsolova/json-schema-validator";
 import wasmURL from "@lsolova/json-schema-validator/dist/assets/schema_validator.wasm?url";
 
-async function initValidation() {
+async function initValidator() {
     await SchemaValidator.init(wasmURL);
 }
 ```
 
-### Node.js: Using Node functions
+The WASM file is automatically processed and included in your build output.
 
-The _SchemaValidator.init_ supports passing a module instead of a path. Therefore WASM can be read from file and passed to the init function.
+### esbuild
+
+TBD
+
+### Node.js
+
+For Node.js, pass the WASM as a Buffer to `init()`. The file location is predictable in `node_modules`:
 
 ```js
 import { readFile } from "node:fs/promises";
 import { SchemaValidator } from "@lsolova/json-schema-validator";
+import path from "node:path";
 
-async function sample() {
-    const wasmBuffer = await fs.readFile(
-        "./node_modules/@lsolova/json-schema-validator/dist/assets/schema_validator.wasm"
+async function initValidator() {
+    const wasmPath = path.join(
+        process.cwd(),
+        "node_modules/@lsolova/json-schema-validator/dist/assets/schema_validator.wasm"
     );
+    const wasmBuffer = await readFile(wasmPath);
     await SchemaValidator.init(wasmBuffer);
 }
 ```
 
 ## Development
 
-1. Run `npm i`
-2. Run `npm run build`
+Setup for local development:
 
-### Local testing
+```bash
+npm install
+npm run build
+```
 
-To start the web application on localhost, run `npm run serve`.
+### Testing
 
-To check the Node.js run on localhost, run `npx tsx node-example.ts`.
+**Browser**: Start a local web server:
+```bash
+npm run serve
+```
+
+**Node.js**: Run the example:
+```bash
+npx tsx node-example.ts
+```

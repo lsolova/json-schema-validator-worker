@@ -1,5 +1,7 @@
 use serde_json::Value;
-use std::error::Error;
+use std::{error::Error, sync::Once};
+
+static INIT: Once = Once::new();
 
 async fn retrieve_via_http_reqwest(uri: &str) -> Result<Value, Box<dyn Error + Send + Sync>> {
     use reqwest::{get, Response};
@@ -21,13 +23,7 @@ pub async fn retrieve_via_http(uri: &str) -> Result<Value, Box<dyn Error + Send 
         let window = match window() {
             Some(w) => w,
             None => {
-                console::warn_1(&JsValue::from_str(
-                    format!(
-                        "Window is undefined. Fallback to custom fetch when retrieve '{}'",
-                        &uri
-                    )
-                    .as_str(),
-                ));
+                INIT.call_once(|| console::warn_1(&JsValue::from_str("Window is undefined. Fallback to custom Reqwest fetching.")));
                 return retrieve_via_http_reqwest(uri).await;
             }
         };
